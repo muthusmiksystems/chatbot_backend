@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import User
 from django.conf import settings
+# from django.utils import timezone
 import jsonfield
 # Create your models here.
 class Bot(models.Model):
@@ -13,6 +14,7 @@ class Bot(models.Model):
     )
 
     name = models.CharField(max_length=255)
+
     # customer_profile = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bots')
     customer_profile = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bots')
     avatar_url = models.URLField(max_length=500, blank=True, null=True)
@@ -21,8 +23,6 @@ class Bot(models.Model):
     bot_type = models.CharField(max_length=50, choices=BOT_TYPES)
     launcher_text = models.CharField(max_length=255, blank=True, null=True)
     to_emails = models.TextField(help_text='Comma-separated list of emails')
-    # trigger_time = models.DateTimeField()
-    # trigger_time_mobile = models.DateTimeField()
     trigger_time = models.CharField(default=0,blank=True,null=True,max_length=500)  # To store time in hours as an integer
     trigger_time_mobile = models.CharField(default=0,max_length=500)
     action = models.CharField(max_length=50,default=" ",null=True, blank=True)
@@ -40,8 +40,17 @@ class Bot(models.Model):
     preference_statement = models.TextField(default="english")
     office_from_timing = models.TimeField(null=True, blank=True)
     office_to_timing = models.TimeField(null=True, blank=True)
-    office_weekdays = jsonfield.JSONField(null=True, blank=True)  # Store weekdays as a JSON array (e.g., [1, 2, 3, 5])
+    office_weekdays = jsonfield.JSONField(null=True, blank=True) 
     office_timezone = models.CharField(max_length=10, blank=True, null=True)
+    whitelisted_urls = models.TextField(blank=True, null=True)  # Store URLs as comma-separated values
+    blacklisted_urls = models.TextField(blank=True, null=True)
+    banned_ips = models.TextField(blank=True, null=True)
+    reason = models.TextField(blank=True, null=True)
+    consent_enabled = models.BooleanField(default=False)
+    consent_enabled_for_euro = models.BooleanField(default=False)
+    consent_text = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)    
+    
 
     class Meta:
         db_table="bot_create"
@@ -78,11 +87,10 @@ class ChatbotQuestion(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['sequence']  # Automatically order by sequence
+        ordering = ['sequence'] 
         db_table="Questions"
 
     def save(self, *args, **kwargs):
-        # Automatically increment the sequence if not already set
         if not self.pk:
             max_sequence = ChatbotQuestion.objects.filter(chatbot_id=self.chatbot_id).aggregate(models.Max('sequence'))['sequence__max']
             self.sequence = (max_sequence or 0) + 1
@@ -97,3 +105,21 @@ class BotLanguage(models.Model):
 
     def __str__(self):
         return f"{self.chatbot.name} - {self.language_code}"
+    
+
+
+class Agent(models.Model):
+    agent_email = models.EmailField(unique=True)
+    agent_name = models.CharField(max_length=255)
+    agent_password = models.CharField(max_length=255)
+    agent_id = models.IntegerField(unique=True,null=True,blank=True)
+    agent_number = models.CharField(max_length=15, blank=True)
+    livechat_redirect_whatsapp = models.BooleanField(default=False)
+    agent_avatar = models.URLField(blank=True, null=True)
+    chats_limit = models.IntegerField(default=5)
+    department = models.ForeignKey('Bot', on_delete=models.CASCADE, related_name='agents_as_department')
+    bots = models.ManyToManyField('Bot', related_name='agents')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.agent_name

@@ -12,6 +12,7 @@ SECRET_KEY = 'django-insecure-uub^t4eg=o_52(9wv7@1)^p0u2a2=$_mf2n)9)_91(2jg^j6pd
 DEBUG = True
 
 ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -21,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'corsheaders',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
@@ -30,15 +32,19 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 ]
 
+CORS_ORGIN_ALLOW_ALL = True
+CORS_ORGIN_WHITELIST = ('http://localhost:3000',)
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -78,7 +84,7 @@ DATABASES = {
         'NAME': 'bot_mongo1',
         'ENFORCE_SCHEMA': False, 
         'CLIENT': {
-            'host': 'mongodb://localhost:27017',
+            'host': 'mongodb://localhost:27017/bot_mongo1',
         },
     },
 }
@@ -122,6 +128,7 @@ SIMPLE_JWT = {
 }    
 
 
+RECAPTCHA_SECRET_KEY = '6LdN42QqAAAAAOPhr4Ay13aX9ksTOYv5I9kJNMFy'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

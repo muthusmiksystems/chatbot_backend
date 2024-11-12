@@ -136,3 +136,73 @@ class TriggerTimeSetupSerializer(serializers.Serializer):
     closure_enable = serializers.BooleanField(required=False)  # Optional field, defaults to False
     trigger_time = serializers.IntegerField(min_value=1, max_value=24)  # Time in hours (assuming)
     trigger_time_mobile = serializers.IntegerField(min_value=1, max_value=24)  # Time in hours (assuming)
+
+
+class AgentSerializer(serializers.ModelSerializer):
+    department = serializers.PrimaryKeyRelatedField(queryset=Bot.objects.all())
+    bots = serializers.PrimaryKeyRelatedField(queryset=Bot.objects.all(), many=True)
+
+    class Meta:
+        model = Agent
+        fields = [
+            'agent_email', 'agent_name', 'agent_password', 'agent_number', 
+            'livechat_redirect_whatsapp', 'agent_avatar', 'chats_limit', 
+            'department', 'bots'
+        ]
+    
+    def create(self, validated_data):
+        # Extract password and other data
+        password = validated_data.pop('agent_password')
+        
+        # Here you should hash the password
+        # For example: hashed_password = hash_password(password)
+        
+        agent = Agent.objects.create(
+            agent_email=validated_data['agent_email'],
+            agent_name=validated_data['agent_name'],
+            agent_password=password,  # Save the hashed password here
+            agent_number=validated_data['agent_number'],
+            livechat_redirect_whatsapp=validated_data['livechat_redirect_whatsapp'],
+            agent_avatar=validated_data['agent_avatar'],
+            chats_limit=validated_data['chats_limit'],
+            department=validated_data['department']
+        )
+
+        # Add bots to agent
+        bots = validated_data['bots']
+        agent.bots.set(bots)
+        return agent
+    
+
+
+
+class AgentUpdateSerializer(serializers.ModelSerializer):
+    department = serializers.PrimaryKeyRelatedField(queryset=Bot.objects.all(), allow_null=True, required=False)
+    bots = serializers.PrimaryKeyRelatedField(queryset=Bot.objects.all(), many=True)
+
+    class Meta:
+        model = Agent
+        fields = [
+            'agent_email', 'agent_name', 'agent_password', 'agent_number', 
+            'livechat_redirect_whatsapp', 'agent_avatar', 'chats_limit', 
+            'department', 'bots','agent_name'
+        ]
+    
+    def update(self, instance, validated_data):
+        # Update the agent's data with validated_data
+        instance.agent_email = validated_data.get('agent_email', instance.agent_email)
+        instance.agent_name = validated_data.get('agent_name', instance.agent_name)
+        instance.agent_number = validated_data.get('agent_number', instance.agent_number)
+        instance.livechat_redirect_whatsapp = validated_data.get('livechat_redirect_whatsapp', instance.livechat_redirect_whatsapp)
+        instance.agent_avatar = validated_data.get('agent_avatar', instance.agent_avatar)
+        instance.chats_limit = validated_data.get('chats_limit', instance.chats_limit)
+        instance.department = validated_data.get('department', instance.department)
+
+        # Update the related bots if provided
+        if 'bots' in validated_data:
+            bots = validated_data.pop('bots')
+            instance.bots.set(bots)
+
+        # Save the updated agent
+        instance.save()
+        return instance

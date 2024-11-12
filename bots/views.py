@@ -12,6 +12,7 @@ from .models import Bot
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 import logging
+import requests
 
 
 logger = logging.getLogger(__name__)
@@ -379,3 +380,220 @@ class AutoTriggerSetupView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class UpdateChatbotURLsView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        action = request.data.get('action')
+        chatbot_id = request.data.get('chatbot_id')
+        urls = request.data.get('whitelisting_urls') or request.data.get('blacklisting_urls')
+
+        if not action or not chatbot_id or not urls:
+            return Response({"error": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the chatbot instance
+        chatbot = get_object_or_404(Bot, id=chatbot_id)
+
+        if action == "whitelisting_urls_setup":
+            # Whitelisting action
+            chatbot.whitelisted_urls = urls
+            chatbot.save()
+            return Response({"status": True}, status=status.HTTP_200_OK)
+
+        elif action == "blacklisting_urls_setup":
+            # Blacklisting action
+            chatbot.blacklisted_urls = urls
+            chatbot.save()
+            return Response({"status": True}, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateChatbotPlatformsView(APIView):
+
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        action = request.data.get('action')
+        chatbot_id = request.data.get('chatbot_id')
+        platforms = request.data.get('available_platforms')
+        ip_address = request.data.get('ip_address')
+        reason = request.data.get('reason', 'No reason provided')  # Default reason if not provided
+        consent_enabled = request.data.get('consent_enabled')
+        consent_enabled_for_euro = request.data.get('consent_enabled_for_euro')
+        consent_text = request.data.get('consent_text')
+        
+
+        if not action or not chatbot_id :
+            return Response({"error": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        chatbot = get_object_or_404(Bot, id=chatbot_id)
+
+        if action == "available_platforms":
+            # Update available platforms for the chatbot
+            chatbot.available_platforms = platforms
+            chatbot.save()
+            return Response({"status": True}, status=status.HTTP_200_OK)
+        
+        elif action == "ban":
+            # Ban the IP address
+            banned_ips = chatbot.banned_ips.split(',') if chatbot.banned_ips else []
+            
+            if ip_address not in banned_ips:
+                banned_ips.append(ip_address)
+                chatbot.banned_ips = ','.join(banned_ips)
+                chatbot.save()
+
+            return Response({"msg": "IP banned", "status": True}, status=status.HTTP_200_OK)
+
+        elif action == "unban":
+            # Unban the IP address
+            banned_ips = chatbot.banned_ips.split(',') if chatbot.banned_ips else []
+            
+            if ip_address in banned_ips:
+                banned_ips.remove(ip_address)
+                chatbot.banned_ips = ','.join(banned_ips)
+                chatbot.save()
+
+            return Response({"msg": "IP unbanned", "status": True}, status=status.HTTP_200_OK)
+        
+        elif action =="consent_status_setup":
+            chatbot.consent_enabled = bool(int(consent_enabled))  # Convert "1" or "0" to boolean
+            chatbot.consent_enabled_for_euro = bool(int(consent_enabled_for_euro))  # Convert "1" or "0" to boolean
+            chatbot.consent_text = consent_text
+            chatbot.save()
+
+            return Response({"status": True}, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class DepartmentView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        department_name = request.data.get('department_name')
+        action = request.data.get('action')
+        customer_profile_id = request.data.get('customer_profile_id') 
+        department_id = request.data.get('department_id') # Make sure to get this from the request
+
+        if not department_name or not customer_profile_id:
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if action == "add":
+            try:
+                # Create a new department with customer_profile_id
+                department = Bot.objects.create(name=department_name, customer_profile_id=customer_profile_id)
+                return Response({"msg": "Department successfully created", "status": True}, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif action == "update":
+            if not department_name or not department_id:
+                return Response({"error": "Missing department_name or department_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get the department by ID
+            try:
+                department = Bot.objects.get(id=department_id)
+
+            except Bot.DoesNotExist:
+                return Response({"error": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Update the department name
+            department.name = department_name
+            department.save()
+
+            return Response({"msg": "Department successfully updated", "status": True}, status=status.HTTP_200_OK)
+        
+        elif action =="delete":
+            if not department_id:
+                return Response({"error": "Department ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            department = get_object_or_404(Bot, id=department_id)  # Or any other unique identifier
+        
+            department.delete()
+
+            return Response({"msg": "Department successfully deleted", "status": True}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AgentSignupView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        # Check the recaptcha_response
+        recaptcha_response = request.data.get('recaptcha_response')
+        # if not self.verify_recaptcha(recaptcha_response):
+        #     return Response({"status": False, "msg": "Invalid reCAPTCHA"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process signup data
+        serializer = AgentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": True, "msg": "Agent created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def verify_recaptcha(self, recaptcha_response):
+       
+        recaptcha_url = "https://www.google.com/recaptcha/api/siteverify"
+        recaptcha_secret = '6LdN42QqAAAAAOPhr4Ay13aX9ksTOYv5I9kJNMFy'  # replace with your reCAPTCHA secret key
+
+        data = {
+            'secret': recaptcha_secret,
+            'response': recaptcha_response
+        }
+
+        response = requests.post(recaptcha_url, data=data)
+        result = response.json()
+        return result.get('success', False)
+    
+
+
+class AgentUpdateView(APIView):
+    """
+    API to handle agent update.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Check reCAPTCHA response
+        # recaptcha_response = request.data.get('recaptcha_response')
+        # if not self.verify_recaptcha(recaptcha_response):
+    #    /\     return Response({"status": False, "msg": "Invalid reCAPTCHA"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get agent_id from the request data
+        agent_id = request.data.get('agent_id')
+        if not agent_id:
+            return Response({"status": False, "msg": "Agent ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve the agent object to update
+        try:
+            agent = Agent.objects.get(id=agent_id)
+        except Agent.DoesNotExist:
+            return Response({"status": False, "msg": "Agent not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Use serializer to update the agent
+        serializer = AgentUpdateSerializer(agent, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": True, "msg": "Agent updated successfully"}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def verify_recaptcha(self, recaptcha_response):
+        recaptcha_url = "https://www.google.com/recaptcha/api/siteverify"
+        recaptcha_secret = '6LdN42QqAAAAAOPhr4Ay13aX9ksTOYv5I9kJNMFy'  # Replace with your actual secret key
+
+        data = {
+            'secret': recaptcha_secret,
+            'response': recaptcha_response
+        }
+
+        response = requests.post(recaptcha_url, data=data)
+        result = response.json()
+
+        return result.get('success', False)
