@@ -31,16 +31,54 @@ class LoginSerializer(serializers.Serializer):
         }
 
 
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['email', 'password', 'first_name', 'last_name', 'phone_number', 
+#                   'company_name', 'company_address', 'company_url', 'contact_person', 
+#                   'contact_number', 'contact_email', 'status', 'profile_img', 
+#                   'OTP', 'otp_validation']
+#         extra_kwargs = {
+#             'password': {'write_only': True},  # Ensure the password is not returned in responses
+#         }
+
+#     def create(self, validated_data):
+#         password = validated_data.pop('password')
+#         user = User(**validated_data)
+#         user.set_password(password)  # Hash the password
+#         user.save()
+#         return user
+    
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'password', 'first_name', 'last_name', 'phone_number', 
+        fields = ['email', 'password', 'first_name', 'last_name','email', 'phone_number', 
                   'company_name', 'company_address', 'company_url', 'contact_person', 
                   'contact_number', 'contact_email', 'status', 'profile_img', 
                   'OTP', 'otp_validation']
         extra_kwargs = {
-            'password': {'write_only': True},  # Ensure the password is not returned in responses
+            'password': {'write_only': True}, 
         }
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        phone_number = attrs.get('phone_number')
+
+        # Check for duplicate email
+        if User.objects.filter(email=email).exists():
+            print("the email id is already exist")
+            raise serializers.ValidationError({
+                "error": "user with this email or phone number already exists"
+            })
+
+        # Check for duplicate phone number
+        if User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({
+                "error": "user with this email or phone number already exists"
+            })
+
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -48,7 +86,9 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)  # Hash the password
         user.save()
         return user
-    
+
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     action = serializers.CharField(required=True)
     password = serializers.CharField(required=True)

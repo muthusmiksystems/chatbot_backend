@@ -1,5 +1,6 @@
 
 from pathlib import Path
+import mongoengine
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,7 +13,6 @@ SECRET_KEY = 'django-insecure-uub^t4eg=o_52(9wv7@1)^p0u2a2=$_mf2n)9)_91(2jg^j6pd
 DEBUG = True
 
 ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -22,29 +22,34 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'corsheaders',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'rest_framework_simplejwt',
     'users',
     'bots',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
-CORS_ORGIN_ALLOW_ALL = True
-CORS_ORGIN_WHITELIST = ('http://localhost:3000',)
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-     'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -69,27 +74,57 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# DATABASE_ROUTERS = ['myproject.routers.DatabaseRouter']
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'chat_bot2',
+#         'USER': 'root',
+#         'PASSWORD': '1234',
+#         'HOST': 'localhost',  
+#         'PORT': '3306', 
+#     },
+#     'mongo': {
+#         'ENGINE': 'djongo',
+#         'NAME': 'bot_mongo2',
+#         'ENFORCE_SCHEMA': False, 
+#         'CLIENT': {
+#             'host': 'mongodb://localhost:27017/bot_mongo2',
+#         },
+#     },
+# }
+
+# DATABASE_ROUTERS = ['myproject.routers.DatabaseRouter']
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'chat_bot1',
+        'NAME': 'chat_bot',
         'USER': 'root',
         'PASSWORD': '1234',
-        'HOST': 'localhost',  
-        'PORT': '3306', 
-    },
-    'mongo': {
-        'ENGINE': 'djongo',
-        'NAME': 'bot_mongo1',
-        'ENFORCE_SCHEMA': False, 
-        'CLIENT': {
-            'host': 'mongodb://localhost:27017/bot_mongo1',
-        },
+        'HOST': 'localhost',
+        'PORT': '3306',
     },
 }
 
-# DATABASE_ROUTERS = ['myproject.routers.ChatBotRouter']
+# MongoDB connection setup for the bots app using MongoEngine
+
+
+# # Connect MongoEngine to the MongoDB database
+# mongoengine.connect(
+#     db='bot_mongo2',                  
+#     host='mongodb://localhost:27017',  
+#     alias='bots_db',                  
+# )
+
+# MongoDB Configuration (MongoEngine doesn't use Django's DATABASES setting)
+MONGODB_SETTINGS = {
+    'db': 'chat_bot',
+    'host': 'localhost',
+    'port': 27017,
+}
+
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -138,6 +173,8 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
+# USE_TZ = True  # This ensures Django is using timezone-aware datetimes.
+# TIME_ZONE = 'UTC'x
 
 USE_TZ = True
 

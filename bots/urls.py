@@ -7,7 +7,7 @@ urlpatterns = [
     path('bots_list/', UserBotsView.as_view(), name='user_bots'),
     path('status/', BotStatusView.as_view(), name='bot-status'),
     path('delete/', BotDeleteView.as_view(), name='bot-delete'),
-    path('<int:pk>/update/', BotUpdateView.as_view(), name='bot-update'),
+    path('<int:bot_id>/update/', BotUpdateView.as_view(), name='bot-update'),
     path('duplicate-bot/', DuplicateChatbotView.as_view(), name='duplicate-bot'),
     path('create-question/', ChatbotQuestionCreateView.as_view(), name='create-question'),
     path('language-update/', MultiLanguageUpdateView.as_view(), name='multi_language_update'),
@@ -18,5 +18,6 @@ urlpatterns = [
     path('update-platforms/', UpdateChatbotPlatformsView.as_view(), name='update-platforms'),
     path('department/', DepartmentView.as_view(), name='department'),
     path('agents_signup/', AgentSignupView.as_view(), name='agent-signup'),
-    path('agent_update/', AgentUpdateView.as_view(), name='agent-update'),
+    path('save_contact/', SaveContact.as_view(), name='agent-signup'),
 ]
+
